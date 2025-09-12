@@ -64,10 +64,9 @@
         tableElement.innerHTML = `<span class="table-id">${tableId}</span><div class="details"></div>`;
         container.appendChild(tableElement);
         
-        // 클릭 이벤트 리스너 추가
         tableElement.addEventListener("click", () => {
           if (tableData.isOccupied) {
-            const confirmation = confirm(`${tableId} 테이블을 정산하고 초기화하시겠습니까?\n총 금액: ${tableData.totalPrice}원`);
+            const confirmation = confirm(`${tableId} 테이블을 정산하고 초기화하시겠습니까?\n총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`);
             if (confirmation) {
               ws.send(JSON.stringify({ type: 'checkout', tableId: tableId }));
             }
@@ -79,8 +78,7 @@
       if (tableData.isOccupied) {
         tableElement.classList.add("occupied");
         const elapsedTime = Math.floor((Date.now() - tableData.startTime) / 60000);
-        details.innerHTML = `점유 시간: ${elapsedTime}분<br>총 금액: ${tableData.totalPrice}원`;
-        // 주문 내역을 추가적으로 보여줄 수도 있습니다.
+        details.innerHTML = `점유 시간: ${elapsedTime}분<br>총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`;
       } else {
         tableElement.classList.remove("occupied");
         details.innerHTML = "빈 테이블";
@@ -96,7 +94,6 @@
         table.className = "table";
         table.innerHTML = `<span class="table-id">${tableId}</span><div class="details"></div>`;
         
-        // 초기 상태: 빈 테이블
         const tableData = { isOccupied: false, startTime: null, totalPrice: 0 };
         updateTableUI(tableId, tableData);
         

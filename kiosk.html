@@ -4,37 +4,89 @@
   <meta charset="UTF-8">
   <title>키오스크</title>
   <style>
-    body { font-family: sans-serif; text-align: center; background-color: #193b59; color: white; }
-    .menu-item { padding: 10px; margin: 10px; border: 1px solid white; border-radius: 5px; cursor: pointer; }
-    .cart { margin-top: 20px; border-top: 2px solid white; padding-top: 10px; }
-    button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; }
+    body { font-family: sans-serif; text-align: center; background-color: #193b59; color: white; margin: 0; }
+    h1, h2 { color: #f5dd8f; }
+    .menu-container { display: flex; flex-direction: column; align-items: center; margin: 20px auto; width: 90%; max-width: 600px; }
+    .menu-item { background-color: white; color: black; padding: 15px; margin: 10px 0; border-radius: 8px; cursor: pointer; text-align: left; }
+    .item-name { font-weight: bold; font-size: 1.2em; }
+    .item-price { font-size: 1.1em; color: #555; }
+    .cart-container { background-color: #315b85; padding: 20px; margin: 20px auto; width: 90%; max-width: 600px; border-radius: 10px; }
+    .cart-list { list-style: none; padding: 0; margin: 10px 0; }
+    .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #5d8ab5; }
+    .cart-item-info { text-align: left; }
+    .cart-item-price { color: white; }
+    .quantity-controls button { width: 30px; height: 30px; font-size: 1em; margin: 0 5px; cursor: pointer; border: none; background-color: #f5dd8f; color: black; border-radius: 5px; }
+    #total-price { font-size: 1.5em; font-weight: bold; }
+    #order-summary { display: none; margin-top: 20px; }
+    #order-summary-box { background-color: #4a759e; padding: 20px; border-radius: 10px; }
+    #order-summary p { font-size: 1.2em; }
+    #order-summary span { font-weight: bold; color: #f5dd8f; }
   </style>
 </head>
 <body>
   <h1 id="table-title"></h1>
   <h2>메뉴판</h2>
-  <div class="menu">
-    <div class="menu-item" data-item-name="맥주" data-price="4000">맥주 (4,000원)</div>
-    <div class="menu-item" data-item-name="소주" data-price="5000">소주 (5,000원)</div>
-    <div class="menu-item" data-item-name="안주" data-price="15000">안주 (15,000원)</div>
+  <div class="menu-container">
+    <div class="menu-item" data-item-name="불닭+타코야끼(8알)" data-price="26000">
+      <div class="item-name">불닭+타코야끼(8알)</div>
+      <div class="item-price">26,000원</div>
+    </div>
+    <div class="menu-item" data-item-name="불닭+소시지(3개)" data-price="22000">
+      <div class="item-name">불닭+소시지(3개)</div>
+      <div class="item-price">22,000원</div>
+    </div>
+    <div class="menu-item" data-item-name="타코야끼(8알)+소시지(3개)+나초" data-price="23000">
+      <div class="item-name">타코야끼(8알)+소시지(3개)+나초</div>
+      <div class="item-price">23,000원</div>
+    </div>
+    <div class="menu-item" data-item-name="김계란" data-price="13000">
+      <div class="item-name">김계란</div>
+      <div class="item-price">13,000원</div>
+    </div>
+    <div class="menu-item" data-item-name="버터구이오징어" data-price="11000">
+      <div class="item-name">버터구이오징어</div>
+      <div class="item-price">11,000원</div>
+    </div>
+    <div class="menu-item" data-item-name="황도" data-price="9000">
+      <div class="item-name">황도</div>
+      <div class="item-price">9,000원</div>
+    </div>
+    <div class="menu-item" data-item-name="나초" data-price="8000">
+      <div class="item-name">나초</div>
+      <div class="item-price">8,000원</div>
+    </div>
   </div>
   
-  <div class="cart">
+  <div class="cart-container">
     <h3>장바구니</h3>
     <ul id="cart-list"></ul>
     <p>총 금액: <span id="total-price">0</span>원</p>
     <button id="order-button">주문하기</button>
   </div>
 
+  <div id="order-summary">
+    <div id="order-summary-box">
+        <h3>주문 내역</h3>
+        <ul id="final-order-list"></ul>
+        <p>최종 금액: <span id="final-total-price">0</span>원</p>
+        <p>계좌번호: 우리은행 1002-359-457613 이웅재</p>
+        <button id="transfer-done-button">이체 완료</button>
+    </div>
+  </div>
+
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const tableId = urlParams.get('tableId');
     const tableTitle = document.getElementById('table-title');
+    const menuItems = document.querySelectorAll('.menu-item');
     const cartList = document.getElementById('cart-list');
     const totalPriceSpan = document.getElementById('total-price');
     const orderButton = document.getElementById('order-button');
-    const menuItems = document.querySelectorAll('.menu-item');
-    
+    const orderSummary = document.getElementById('order-summary');
+    const finalOrderList = document.getElementById('final-order-list');
+    const finalTotalPriceSpan = document.getElementById('final-total-price');
+    const transferDoneButton = document.getElementById('transfer-done-button');
+
     let cart = {};
     let totalPrice = 0;
 
@@ -42,59 +94,106 @@
       tableTitle.textContent = `${tableId} 테이블`;
     } else {
       tableTitle.textContent = "테이블을 찾을 수 없습니다.";
+      orderButton.disabled = true;
     }
 
-    const ws = new WebSocket("https://daedongje-table-manager.onrender.com"); // ⚠️ 이 부분을 당신의 주소로 바꾸세요
+    const ws = new WebSocket("wss://당신의-render-주소.onrender.com"); // ⚠️ 이 부분을 당신의 주소로 바꾸세요
 
     ws.onopen = () => {
-      console.log("웹소켓 서버에 연결되었습니다.");
-      // 서버에 테이블 점유 메시지 전송
-      if (tableId) {
-          ws.send(JSON.stringify({ type: 'occupy', tableId: tableId }));
-      }
+        if (tableId) {
+            ws.send(JSON.stringify({ type: 'occupy', tableId: tableId }));
+        }
     };
 
     menuItems.forEach(item => {
-      item.addEventListener('click', () => {
-        const itemName = item.dataset.itemName;
-        const itemPrice = parseInt(item.dataset.price);
-        
-        if (cart[itemName]) {
-            cart[itemName].quantity++;
-        } else {
-            cart[itemName] = { quantity: 1, price: itemPrice };
-        }
-        totalPrice += itemPrice;
-        updateCartUI();
-      });
+        item.addEventListener('click', () => {
+            const itemName = item.dataset.itemName;
+            const itemPrice = parseInt(item.dataset.price);
+
+            if (cart[itemName]) {
+                cart[itemName].quantity++;
+            } else {
+                cart[itemName] = { quantity: 1, price: itemPrice };
+            }
+            totalPrice += itemPrice;
+            updateCartUI();
+        });
     });
 
     orderButton.addEventListener('click', () => {
-      if (totalPrice > 0) {
-        // 주문 메시지를 서버로 보냅니다
-        ws.send(JSON.stringify({
-          type: 'order',
-          tableId: tableId,
-          items: cart,
-          totalPrice: totalPrice
-        }));
-        alert("주문이 완료되었습니다!");
-        cart = {};
-        totalPrice = 0;
-        updateCartUI();
-      } else {
-        alert("장바구니에 상품을 담아주세요.");
-      }
+        if (totalPrice > 0) {
+            updateOrderSummary();
+            orderSummary.style.display = 'block';
+        } else {
+            alert("장바구니에 상품을 담아주세요.");
+        }
+    });
+
+    transferDoneButton.addEventListener('click', () => {
+        if (totalPrice > 0) {
+            ws.send(JSON.stringify({
+                type: 'order',
+                tableId: tableId,
+                items: cart,
+                totalPrice: totalPrice
+            }));
+            alert("주문이 완료되었습니다!");
+            cart = {};
+            totalPrice = 0;
+            updateCartUI();
+            orderSummary.style.display = 'none';
+        }
     });
 
     function updateCartUI() {
         cartList.innerHTML = '';
-        for (const item in cart) {
+        for (const itemName in cart) {
+            const item = cart[itemName];
             const li = document.createElement('li');
-            li.textContent = `${item} x${cart[item].quantity} (${cart[item].quantity * cart[item].price}원)`;
+            li.className = 'cart-item';
+            
+            li.innerHTML = `
+                <div class="cart-item-info">
+                    ${itemName}
+                    <div class="cart-item-price">
+                        ${item.price.toLocaleString('ko-KR')}원
+                    </div>
+                </div>
+                <div class="quantity-controls">
+                    <button class="minus-btn">-</button>
+                    <span>${item.quantity}</span>
+                    <button class="plus-btn">+</button>
+                </div>
+            `;
+            li.querySelector('.minus-btn').addEventListener('click', () => adjustQuantity(itemName, -1));
+            li.querySelector('.plus-btn').addEventListener('click', () => adjustQuantity(itemName, 1));
             cartList.appendChild(li);
         }
-        totalPriceSpan.textContent = totalPrice;
+        totalPriceSpan.textContent = totalPrice.toLocaleString('ko-KR');
+    }
+
+    function adjustQuantity(itemName, amount) {
+        if (cart[itemName]) {
+            cart[itemName].quantity += amount;
+            totalPrice += cart[itemName].price * amount;
+
+            if (cart[itemName].quantity <= 0) {
+                delete cart[itemName];
+            }
+            updateCartUI();
+        }
+    }
+
+    function updateOrderSummary() {
+        finalOrderList.innerHTML = '';
+        for (const itemName in cart) {
+            const item = cart[itemName];
+            const li = document.createElement('li');
+            const itemSubtotal = item.quantity * item.price;
+            li.textContent = `${itemName} x${item.quantity} (${itemSubtotal.toLocaleString('ko-KR')}원)`;
+            finalOrderList.appendChild(li);
+        }
+        finalTotalPriceSpan.textContent = totalPrice.toLocaleString('ko-KR');
     }
   </script>
 </body>
