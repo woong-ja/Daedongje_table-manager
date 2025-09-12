@@ -40,7 +40,7 @@
 
   <script>
     const sections = ["A", "B", "C", "D"];
-    const ws = new WebSocket("https://daedongje-table-manager.onrender.com"); // ⚠️ 이 부분을 당신의 주소로 바꾸세요
+    const ws = new WebSocket("wss://daedongje-table-manager.onrender.com"); // ⚠️ 당신의 주소로 자동 수정했습니다.
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -88,6 +88,34 @@
         }
       }
     }
+
+    // 이 반복문은 초기 테이블 UI를 한 번만 만듭니다.
+    sections.forEach(section => {
+      const container = document.getElementById(section);
+      for (let i = 1; i <= 6; i++) {
+        const tableId = section + "-" + i;
+        const table = document.createElement("div");
+        table.id = tableId;
+        table.className = "table";
+        table.innerHTML = `<span class="table-id">${tableId}</span><div class="details"></div>`;
+        container.appendChild(table);
+
+        table.addEventListener("click", () => {
+          const tableData = {
+              isOccupied: table.classList.contains('occupied'),
+              totalPrice: parseInt(table.querySelector('.details').textContent.match(/총 금액: (\d+)/)?.[1].replace(/,/g, '') || 0),
+              // startTime은 서버에서 관리하므로 클라이언트에서는 알 필요가 없습니다.
+          };
+          
+          if (tableData.isOccupied) {
+            const confirmation = confirm(`${tableId} 테이블을 정산하고 초기화하시겠습니까?\n총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`);
+            if (confirmation) {
+              ws.send(JSON.stringify({ type: 'checkout', tableId: tableId }));
+            }
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>

@@ -38,53 +38,40 @@ wss.on('connection', ws => {
     ws.send(JSON.stringify({ type: 'init', tables: tables }));
 
     ws.on('message', message => {
-        const data = JSON.parse(message);
-        const tableId = data.tableId;
+        try {
+            const data = JSON.parse(message);
+            const tableId = data.tableId;
 
-        if (data.type === 'occupy') {
-            console.log(`[occupy] 테이블 ${tableId} 점유 시도`);
-            if (tables[tableId]) {
-                tables[tableId].isOccupied = true;
-                tables[tableId].startTime = Date.now();
-                tables[tableId].totalPrice = 0;
-                tables[tableId].orders = [];
-            
-                wss.clients.forEach(client => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({ type: 'table-update', tableId: tableId, tableData: tables[tableId] }));
-                    }
-                });
-            }
-        } else if (data.type === 'order') {
-            console.log(`[order] 테이블 ${tableId} 주문 접수`);
-            const { tableId, items, totalPrice } = data;
-            if (tables[tableId]) {
-                tables[tableId].orders.push({
-                    time: new Date().toLocaleTimeString('ko-KR'),
-                    items: items,
-                    totalPrice: totalPrice
-                });
-                tables[tableId].totalPrice += totalPrice;
-            }
-
-            wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'order-update', tableId: tableId, tableData: tables[tableId] }));
+            if (data.type === 'occupy') {
+                if (tables[tableId]) {
+                    tables[tableId].isOccupied = true;
+                    tables[tableId].startTime = Date.now();
+                    tables[tableId].totalPrice = 0;
+                    tables[tableId].orders = [];
+                    broadcastUpdate(tableId, tables[tableId]);
                 }
-            });
-        } else if (data.type === 'checkout') {
-            console.log(`[checkout] 테이블 ${tableId} 정산 완료`);
-            if (tables[tableId]) {
-                tables[tableId].isOccupied = false;
-                tables[tableId].startTime = null;
-                tables[tableId].totalPrice = 0;
-                tables[tableId].orders = [];
-            }
-            wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'table-update', tableId: tableId, tableData: tables[tableId] }));
+            } else if (data.type === 'order') {
+                if (tables[tableId]) {
+                    const { items, totalPrice } = data;
+                    tables[tableId].orders.push({
+                        time: new Date().toLocaleTimeString('ko-KR'),
+                        items: items,
+                        totalPrice: totalPrice
+                    });
+                    tables[tableId].totalPrice += totalPrice;
+                    broadcastUpdate(tableId, tables[tableId]);
                 }
-            });
+            } else if (data.type === 'checkout') {
+                if (tables[tableId]) {
+                    tables[tableId].isOccupied = false;
+                    tables[tableId].startTime = null;
+                    tables[tableId].totalPrice = 0;
+                    tables[tableId].orders = [];
+                    broadcastUpdate(tableId, tables[tableId]);
+                }
+            }
+        } catch (e) {
+            console.error('메시지 처리 오류:', e);
         }
     });
 
@@ -93,6 +80,14 @@ wss.on('connection', ws => {
     });
 });
 
-server.listen(8080, () => {
-    console.log('서버가 8080 포트에서 실행 중입니다.');
+function broadcastUpdate(tableId, tableData) {
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: 'table-update', tableId: tableId, tableData: tableData }));
+        }
+    });
+}
+
+server.listen(process.env.PORT || 8080, () => {
+    console.log(`서버가 ${process.env.PORT || 8080} 포트에서 실행 중입니다.`);
 });
