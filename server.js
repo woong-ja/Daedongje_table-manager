@@ -42,7 +42,8 @@ wss.on('connection', ws => {
         const tableId = data.tableId;
 
         if (data.type === 'occupy') {
-            if (tables[tableId] && !tables[tableId].isOccupied) {
+            console.log(`[occupy] 테이블 ${tableId} 점유 시도`);
+            if (tables[tableId]) {
                 tables[tableId].isOccupied = true;
                 tables[tableId].startTime = Date.now();
                 tables[tableId].totalPrice = 0;
@@ -55,6 +56,7 @@ wss.on('connection', ws => {
                 });
             }
         } else if (data.type === 'order') {
+            console.log(`[order] 테이블 ${tableId} 주문 접수`);
             const { tableId, items, totalPrice } = data;
             if (tables[tableId]) {
                 tables[tableId].orders.push({
@@ -71,6 +73,7 @@ wss.on('connection', ws => {
                 }
             });
         } else if (data.type === 'checkout') {
+            console.log(`[checkout] 테이블 ${tableId} 정산 완료`);
             if (tables[tableId]) {
                 tables[tableId].isOccupied = false;
                 tables[tableId].startTime = null;
