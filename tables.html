@@ -83,7 +83,7 @@
 
 <script>
   const sections = ["A", "B", "C", "D"];
-  const ws = new WebSocket("ws://localhost:8080"); // 서버 주소로 변경
+  const ws = new WebSocket("wss://daedongje-table-manager.onrender.com"); // 서버 주소로 변경
 
   ws.onopen = () => {
     console.log("웹소켓 서버에 연결되었습니다.");
