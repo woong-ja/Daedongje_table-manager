@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>테이블 관리</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #193b59;
+      color: white;
+    }
+    h1 {
+      margin: 10px 0;
+    }
+    /* "안현정 모쏠 탈출 기원" */
+    h2:first-of-type {
+      color: #e675bf;
+      font-size: 22px;
+    }
+    /* A~D 구역 제목 */
+    .section h2 {
+      color: #f5dd8f;
+      font-size: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 40px;
+      margin-top: 20px;
+    }
+    .section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .tables {
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      grid-template-rows: repeat(2, 60px);
+      gap: 5px;
+    }
+    .table {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: white;
+      color: black;
+      border: 2px solid #f5dd8f;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .table.occupied {
+      background-color: #d64040;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>테이블 관리</h1>
+  <h2>안현정 모쏠 탈출 기원</h2>
+  <div class="grid">
+    <div class="section">
+      <h2>A 구역</h2>
+      <div class="tables" id="A"></div>
+    </div>
+    <div class="section">
+      <h2>B 구역</h2>
+      <div class="tables" id="B"></div>
+    </div>
+    <div class="section">
+      <h2>C 구역</h2>
+      <div class="tables" id="C"></div>
+    </div>
+    <div class="section">
+      <h2>D 구역</h2>
+      <div class="tables" id="D"></div>
+    </div>
+  </div>
+
+<script>
+  const sections = ["A", "B", "C", "D"];
+  const ws = new WebSocket("ws://localhost:8080"); // 서버 주소로 변경
+
+  ws.onopen = () => {
+    console.log("웹소켓 서버에 연결되었습니다.");
+  };
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'init') {
+      // 초기 상태 반영
+      for (const tableId in data.tables) {
+        updateTableState(tableId, data.tables[tableId]);
+      }
+    } else if (data.type === 'update') {
+      // 실시간 업데이트 반영
+      updateTableState(data.tableId, data.isOccupied);
+    }
+  };
+
+  function updateTableState(tableId, isOccupied) {
+    const tableElement = document.getElementById(tableId);
+    if (tableElement) {
+      if (isOccupied) {
+        tableElement.classList.add("occupied");
+      } else {
+        tableElement.classList.remove("occupied");
+      }
+    }
+  }
+
+  sections.forEach(section => {
+    const container = document.getElementById(section);
+    for (let i = 1; i <= 6; i++) {
+      const tableId = section + "-" + i;
+      const table = document.createElement("div");
+      table.id = tableId; // id 추가
+      table.className = "table";
+      table.textContent = tableId;
+
+      table.addEventListener("click", () => {
+        const isOccupied = table.classList.toggle("occupied");
+        // 서버로 상태 변경 메시지 전송
+        ws.send(JSON.stringify({
+          type: 'update',
+          tableId: tableId,
+          isOccupied: isOccupied
+        }));
+      });
+      container.appendChild(table);
+    }
+  });
+</script>
+</body>
+</html>
