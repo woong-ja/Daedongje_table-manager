@@ -40,7 +40,7 @@
 
   <script>
     const sections = ["A", "B", "C", "D"];
-    const ws = new WebSocket("https://daedongje-table-manager.onrender.com"); // ⚠️ 이 부분을 당신의 주소로 바꾸세요
+    const ws = new WebSocket("wss://당신의-render-주소.onrender.com"); // ⚠️ 이 부분을 당신의 주소로 바꾸세요
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -54,24 +54,10 @@
     };
 
     function updateTableUI(tableId, tableData) {
-      let tableElement = document.getElementById(tableId);
+      const tableElement = document.getElementById(tableId);
       if (!tableElement) {
-        const [section, number] = tableId.split('-');
-        const container = document.getElementById(section);
-        tableElement = document.createElement("div");
-        tableElement.id = tableId;
-        tableElement.className = "table";
-        tableElement.innerHTML = `<span class="table-id">${tableId}</span><div class="details"></div>`;
-        container.appendChild(tableElement);
-        
-        tableElement.addEventListener("click", () => {
-          if (tableData.isOccupied) {
-            const confirmation = confirm(`${tableId} 테이블을 정산하고 초기화하시겠습니까?\n총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`);
-            if (confirmation) {
-              ws.send(JSON.stringify({ type: 'checkout', tableId: tableId }));
-            }
-          }
-        });
+        // 이 부분은 초기화 로직에만 사용되므로, 웹소켓 업데이트에서는 실행되지 않도록 제거했습니다.
+        return; 
       }
 
       const details = tableElement.querySelector('.details');
@@ -85,6 +71,7 @@
       }
     }
 
+    // 이 반복문이 초기 테이블 UI를 한 번만 만듭니다.
     sections.forEach(section => {
       const container = document.getElementById(section);
       for (let i = 1; i <= 6; i++) {
@@ -94,12 +81,37 @@
         table.className = "table";
         table.innerHTML = `<span class="table-id">${tableId}</span><div class="details"></div>`;
         
-        const tableData = { isOccupied: false, startTime: null, totalPrice: 0 };
-        updateTableUI(tableId, tableData);
+        table.addEventListener("click", () => {
+          const tableData = getTableData(tableId);
+          if (tableData && tableData.isOccupied) {
+            const confirmation = confirm(`${tableId} 테이블을 정산하고 초기화하시겠습니까?\n총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`);
+            if (confirmation) {
+              ws.send(JSON.stringify({ type: 'checkout', tableId: tableId }));
+            }
+          }
+        });
         
         container.appendChild(table);
       }
     });
+
+    // 모든 테이블 데이터를 가져오는 임시 함수
+    function getTableData(tableId) {
+        // 이 함수는 초기 접속 시 받은 데이터를 사용합니다.
+        // 실시간 업데이트를 위해선 서버에 요청하거나, 데이터를 로컬에 저장하는 로직이 필요합니다.
+        // 현재는 서버에서 init 메시지를 받아 초기화할 때 테이블 데이터를 가져옵니다.
+        // 이 로직은 이미 updateTableUI 함수에서 처리하고 있습니다.
+        // 이 코드는 클릭 이벤트에서만 사용되므로, 현재는 비워두셔도 됩니다.
+        // 하지만 클릭 이벤트가 제대로 작동하도록 아래 코드를 추가합니다.
+        const tableElement = document.getElementById(tableId);
+        if (tableElement) {
+          const isOccupied = tableElement.classList.contains('occupied');
+          const totalPriceText = tableElement.querySelector('.details').textContent;
+          const totalPrice = parseInt(totalPriceText.match(/총 금액: (\d+)/)?.[1].replace(/,/g, '') || 0);
+          return { isOccupied, totalPrice };
+        }
+        return { isOccupied: false, totalPrice: 0 };
+    }
   </script>
 </body>
 </html>
