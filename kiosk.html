@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>키오스크</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background-color: #193b59; color: white; }
+    .menu-item { padding: 10px; margin: 10px; border: 1px solid white; border-radius: 5px; cursor: pointer; }
+    .cart { margin-top: 20px; border-top: 2px solid white; padding-top: 10px; }
+    button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1 id="table-title"></h1>
+  <h2>메뉴판</h2>
+  <div class="menu">
+    <div class="menu-item" data-item-name="맥주" data-price="4000">맥주 (4,000원)</div>
+    <div class="menu-item" data-item-name="소주" data-price="5000">소주 (5,000원)</div>
+    <div class="menu-item" data-item-name="안주" data-price="15000">안주 (15,000원)</div>
+  </div>
+  
+  <div class="cart">
+    <h3>장바구니</h3>
+    <ul id="cart-list"></ul>
+    <p>총 금액: <span id="total-price">0</span>원</p>
+    <button id="order-button">주문하기</button>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const tableId = urlParams.get('tableId');
+    const tableTitle = document.getElementById('table-title');
+    const cartList = document.getElementById('cart-list');
+    const totalPriceSpan = document.getElementById('total-price');
+    const orderButton = document.getElementById('order-button');
+    const menuItems = document.querySelectorAll('.menu-item');
+    
+    let cart = {};
+    let totalPrice = 0;
+
+    if (tableId) {
+      tableTitle.textContent = `${tableId} 테이블`;
+    } else {
+      tableTitle.textContent = "테이블을 찾을 수 없습니다.";
+    }
+
+    const ws = new WebSocket("https://daedongje-table-manager.onrender.com"); // ⚠️ 이 부분을 당신의 주소로 바꾸세요
+
+    ws.onopen = () => {
+      console.log("웹소켓 서버에 연결되었습니다.");
+      // 서버에 테이블 점유 메시지 전송
+      if (tableId) {
+          ws.send(JSON.stringify({ type: 'occupy', tableId: tableId }));
+      }
+    };
+
+    menuItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const itemName = item.dataset.itemName;
+        const itemPrice = parseInt(item.dataset.price);
+        
+        if (cart[itemName]) {
+            cart[itemName].quantity++;
+        } else {
+            cart[itemName] = { quantity: 1, price: itemPrice };
+        }
+        totalPrice += itemPrice;
+        updateCartUI();
+      });
+    });
+
+    orderButton.addEventListener('click', () => {
+      if (totalPrice > 0) {
+        // 주문 메시지를 서버로 보냅니다
+        ws.send(JSON.stringify({
+          type: 'order',
+          tableId: tableId,
+          items: cart,
+          totalPrice: totalPrice
+        }));
+        alert("주문이 완료되었습니다!");
+        cart = {};
+        totalPrice = 0;
+        updateCartUI();
+      } else {
+        alert("장바구니에 상품을 담아주세요.");
+      }
+    });
+
+    function updateCartUI() {
+        cartList.innerHTML = '';
+        for (const item in cart) {
+            const li = document.createElement('li');
+            li.textContent = `${item} x${cart[item].quantity} (${cart[item].quantity * cart[item].price}원)`;
+            cartList.appendChild(li);
+        }
+        totalPriceSpan.textContent = totalPrice;
+    }
+  </script>
+</body>
+</html>
