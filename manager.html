@@ -134,15 +134,16 @@
       modalOrderList.innerHTML = '';
       
       if (tableData.orders && tableData.orders.length > 0) {
-        const latestOrder = tableData.orders[tableData.orders.length - 1];
-        if (latestOrder.items) {
-          for (const itemName in latestOrder.items) {
-            const item = latestOrder.items[itemName];
-            const li = document.createElement('li');
-            li.textContent = `${itemName} x ${item.quantity}`;
-            modalOrderList.appendChild(li);
+        tableData.orders.forEach(order => {
+          if (order.items) {
+            for (const itemName in order.items) {
+              const item = order.items[itemName];
+              const li = document.createElement('li');
+              li.textContent = `${itemName} x ${item.quantity}`;
+              modalOrderList.appendChild(li);
+            }
           }
-        }
+        });
       } else {
         modalOrderList.innerHTML = '<li>주문 내역 없음</li>';
       }

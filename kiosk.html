@@ -21,6 +21,7 @@
     #order-summary-box { background-color: #4a759e; padding: 20px; border-radius: 10px; }
     #order-summary p { font-size: 1.2em; }
     #order-summary span { font-weight: bold; color: #f5dd8f; }
+    #pending-message { display: none; background-color: #4a759e; padding: 20px; border-radius: 10px; margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -74,11 +75,16 @@
     </div>
   </div>
 
+  <div id="pending-message">
+    <p>입금 확인을 기다리고 있습니다...</p>
+  </div>
+
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const tableId = urlParams.get('tableId');
     const tableTitle = document.getElementById('table-title');
     const menuItems = document.querySelectorAll('.menu-item');
+    const cartContainer = document.querySelector('.cart-container');
     const cartList = document.getElementById('cart-list');
     const totalPriceSpan = document.getElementById('total-price');
     const orderButton = document.getElementById('order-button');
@@ -86,6 +92,7 @@
     const finalOrderList = document.getElementById('final-order-list');
     const finalTotalPriceSpan = document.getElementById('final-total-price');
     const transferDoneButton = document.getElementById('transfer-done-button');
+    const pendingMessage = document.getElementById('pending-message');
 
     let cart = {};
     let totalPrice = 0;
@@ -97,11 +104,25 @@
       orderButton.disabled = true;
     }
 
-    const ws = new WebSocket("wss://daedongje-table-manager.onrender.com"); // ⚠️ 당신의 주소로 자동 수정했습니다.
+    const ws = new WebSocket("wss://daedongje-table-manager.onrender.com");
 
     ws.onopen = () => {
         if (tableId) {
             ws.send(JSON.stringify({ type: 'occupy', tableId: tableId }));
+        }
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'order-confirmed' && data.tableId === tableId) {
+            pendingMessage.innerHTML = '<p>주문이 정상적으로 접수되었습니다!</p>';
+            setTimeout(() => {
+                pendingMessage.style.display = 'none';
+                cartContainer.style.display = 'block';
+                cart = {};
+                totalPrice = 0;
+                updateCartUI();
+            }, 3000);
         }
     };
 
@@ -124,6 +145,7 @@
         if (totalPrice > 0) {
             updateOrderSummary();
             orderSummary.style.display = 'block';
+            cartContainer.style.display = 'none';
         } else {
             alert("장바구니에 상품을 담아주세요.");
         }
@@ -132,16 +154,13 @@
     transferDoneButton.addEventListener('click', () => {
         if (totalPrice > 0) {
             ws.send(JSON.stringify({
-                type: 'order',
+                type: 'order-pending',
                 tableId: tableId,
                 items: cart,
                 totalPrice: totalPrice
             }));
-            alert("주문이 완료되었습니다!");
-            cart = {};
-            totalPrice = 0;
-            updateCartUI();
             orderSummary.style.display = 'none';
+            pendingMessage.style.display = 'block';
         }
     });
 

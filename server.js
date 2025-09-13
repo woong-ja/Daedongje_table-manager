@@ -56,17 +56,15 @@ wss.on('connection', ws => {
                     broadcastUpdate(tableId, tables[tableId]);
                 }
             } else if (data.type === 'order-pending') {
-                if (tables[tableId].status !== 'pending') {
-                    const { items, totalPrice } = data;
-                    tables[tableId].status = 'pending';
-                    tables[tableId].totalPrice += totalPrice;
-                    tables[tableId].orders.push({
-                        time: new Date().toLocaleTimeString('ko-KR'),
-                        items: items,
-                        totalPrice: totalPrice
-                    });
-                    broadcastUpdate(tableId, tables[tableId]);
-                }
+                const { items, totalPrice } = data;
+                tables[tableId].status = 'pending';
+                tables[tableId].totalPrice += totalPrice;
+                tables[tableId].orders.push({
+                    time: new Date().toLocaleTimeString('ko-KR'),
+                    items: items,
+                    totalPrice: totalPrice
+                });
+                broadcastUpdate(tableId, tables[tableId]);
             } else if (data.type === 'confirm-order') {
                 if (tables[tableId].status === 'pending') {
                     tables[tableId].status = 'occupied';
