@@ -120,7 +120,12 @@
 
       if (tableData.status === 'occupied') {
         tableElement.classList.add("occupied");
-        const elapsedTime = Math.floor((Date.now() - tableData.startTime) / 60000);
+        
+        let elapsedTime = '---';
+        if (tableData.startTime) {
+            elapsedTime = Math.floor((Date.now() - tableData.startTime) / 60000);
+        }
+
         details.innerHTML = `점유 시간: ${elapsedTime}분<br>총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`;
       } else if (tableData.status === 'pending') {
         tableElement.classList.add("pending");
