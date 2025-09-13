@@ -136,22 +136,20 @@
       modalOrderList.innerHTML = '';
       
       if (tableData.orders && tableData.orders.length > 0) {
-        // 주문 내역을 시간대별로 그룹화하여 표시
         tableData.orders.forEach((order, index) => {
           const orderTitle = document.createElement('h4');
           orderTitle.style.marginTop = '10px';
           orderTitle.style.marginBottom = '5px';
-
-          // 서버에서 받은 ISO 문자열을 Date 객체로 변환하여 한국 시간으로 포맷합니다.
-          const orderTime = new Date(order.time).toLocaleTimeString('ko-KR', {
+          
+          const orderDate = new Date(order.time);
+          const formattedTime = orderDate.toLocaleTimeString('ko-KR', {
             hour: '2-digit', 
             minute: '2-digit', 
             second: '2-digit',
-            hour12: false // 24시간제로 표시
+            hour12: false
           });
-
           
-          orderTitle.textContent = `주문 #${index + 1} (${order.time})`;
+          orderTitle.textContent = `주문 #${index + 1} (${formattedTime})`;
           modalOrderList.appendChild(orderTitle);
 
           const orderItemsList = document.createElement('ul');
