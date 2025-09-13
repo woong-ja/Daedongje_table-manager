@@ -141,6 +141,16 @@
           const orderTitle = document.createElement('h4');
           orderTitle.style.marginTop = '10px';
           orderTitle.style.marginBottom = '5px';
+
+          // 서버에서 받은 ISO 문자열을 Date 객체로 변환하여 한국 시간으로 포맷합니다.
+          const orderTime = new Date(order.time).toLocaleTimeString('ko-KR', {
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            hour12: false // 24시간제로 표시
+          });
+
+          
           orderTitle.textContent = `주문 #${index + 1} (${order.time})`;
           modalOrderList.appendChild(orderTitle);
 
