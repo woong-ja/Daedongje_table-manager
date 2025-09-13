@@ -22,6 +22,16 @@
     #order-summary p { font-size: 1.2em; }
     #order-summary span { font-weight: bold; color: #f5dd8f; }
     #pending-message { display: none; background-color: #4a759e; padding: 20px; border-radius: 10px; margin-top: 20px; }
+    #copy-button {
+      background-color: #f5dd8f;
+      color: black;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
@@ -70,7 +80,7 @@
         <h3>주문 내역</h3>
         <ul id="final-order-list"></ul>
         <p>최종 금액: <span id="final-total-price">0</span>원</p>
-        <p>계좌번호: 우리은행 1002-359-457613 이웅재</p>
+        <p>계좌번호: <span id="account-number">우리은행 1002-359-457613 이웅재</span><button id="copy-button">복사</button></p>
         <button id="transfer-done-button">이체 완료</button>
     </div>
   </div>
@@ -93,6 +103,8 @@
     const finalTotalPriceSpan = document.getElementById('final-total-price');
     const transferDoneButton = document.getElementById('transfer-done-button');
     const pendingMessage = document.getElementById('pending-message');
+    const copyButton = document.getElementById('copy-button');
+    const accountNumberSpan = document.getElementById('account-number');
 
     let cart = {};
     let totalPrice = 0;
@@ -162,6 +174,18 @@
             orderSummary.style.display = 'none';
             pendingMessage.style.display = 'block';
         }
+    });
+    
+    copyButton.addEventListener('click', () => {
+        const accountNumber = accountNumberSpan.textContent;
+        navigator.clipboard.writeText(accountNumber.trim())
+            .then(() => {
+                alert('계좌번호가 복사되었습니다!');
+            })
+            .catch(err => {
+                console.error('복사 실패:', err);
+                alert('계좌번호 복사에 실패했습니다.');
+            });
     });
 
     function updateCartUI() {
