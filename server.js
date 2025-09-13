@@ -68,7 +68,8 @@ wss.on('connection', ws => {
             } else if (data.type === 'confirm-order') {
                 if (tables[tableId].status === 'pending') {
                     tables[tableId].status = 'occupied';
-                    tables[tableId].startTime = Date.now();
+                    // 점유 시간 초기화 코드를 제거합니다.
+                    // tables[tableId].startTime = Date.now(); 
                     broadcastUpdate(tableId, tables[tableId]);
                     wss.clients.forEach(client => {
                         if (client.readyState === WebSocket.OPEN) {

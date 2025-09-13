@@ -1,132 +1,5 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>통합 테이블 관리</title>
-  <style>
-    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #193b59; color: white; }
-    h1 { margin: 10px 0; }
-    .section h2 { color: #f5dd8f; font-size: 20px; }
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; margin-top: 20px; }
-    .section { display: flex; flex-direction: column; align-items: center; }
-    .tables { display: grid; grid-template-columns: repeat(3, 100px); grid-template-rows: repeat(2, 100px); gap: 10px; }
-    .table { display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 5px; background-color: white; color: black; border: 2px solid #f5dd8f; border-radius: 8px; cursor: pointer; font-weight: bold; }
-    .table.occupied { background-color: #d64040; color: white; }
-    .table.pending { background-color: #f5dd8f; color: black; }
-    .table.occupied .details { color: #f5dd8f; }
-    .table-id { font-size: 16px; margin-bottom: 5px; }
-    .details { font-size: 12px; text-align: center; }
-    /* Modal styles */
-    .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
-    .modal-content { background-color: #193b59; padding: 20px; border: 2px solid #f5dd8f; width: 80%; max-width: 400px; border-radius: 10px; text-align: left; position: relative; }
-    .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; position: absolute; top: 10px; right: 20px; }
-    .close-button:hover, .close-button:focus { color: white; text-decoration: none; }
-    .order-list li { margin-bottom: 5px; }
-    .modal-buttons { margin-top: 20px; text-align: center; }
-    .modal-buttons button { padding: 10px 20px; margin: 0 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-    #confirm-button { background-color: #4CAF50; color: white; }
-    #checkout-button { background-color: #f44336; color: white; }
-  </style>
-</head>
-<body>
-  <h1>통합 테이블 관리 대시보드</h1>
-  <div class="grid">
-    <div class="section">
-      <h2>A 구역</h2>
-      <div class="tables" id="A"></div>
-    </div>
-    <div class="section">
-      <h2>B 구역</h2>
-      <div class="tables" id="B"></div>
-    </div>
-    <div class="section">
-      <h2>C 구역</h2>
-      <div class="tables" id="C"></div>
-    </div>
-    <div class="section">
-      <h2>D 구역</h2>
-      <div class="tables" id="D"></div>
-    </div>
-  </div>
-
-  <div id="myModal" class="modal">
-    <div class="modal-content">
-      <span class="close-button">&times;</span>
-      <h2 id="modal-table-id"></h2>
-      <h3>주문 내역</h3>
-      <ul id="modal-order-list" class="order-list"></ul>
-      <p><strong>총 금액:</strong> <span id="modal-total-price"></span>원</p>
-      <div class="modal-buttons">
-        <button id="confirm-button" style="display:none;">입금 확인</button>
-        <button id="checkout-button" style="display:none;">정산 완료</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const sections = ["A", "B", "C", "D"];
-    const ws = new WebSocket("wss://daedongje-table-manager.onrender.com");
-    const tables = {};
-    const modal = document.getElementById("myModal");
-    const closeButton = document.querySelector(".close-button");
-    const modalTableId = document.getElementById("modal-table-id");
-    const modalOrderList = document.getElementById("modal-order-list");
-    const modalTotalPrice = document.getElementById("modal-total-price");
-    const confirmButton = document.getElementById("confirm-button");
-    const checkoutButton = document.getElementById("checkout-button");
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'init') {
-        Object.assign(tables, data.tables);
-        renderTables();
-      } else if (data.type === 'table-update') {
-        tables[data.tableId] = data.tableData;
-        updateTableUI(data.tableId);
-      }
-    };
-
-    function renderTables() {
-      sections.forEach(section => {
-        const container = document.getElementById(section);
-        container.innerHTML = '';
-        for (let i = 1; i <= 6; i++) {
-          const tableId = section + "-" + i;
-          const table = document.createElement("div");
-          table.id = tableId;
-          table.className = "table";
-          table.innerHTML = `<span class="table-id">${tableId}</span><div class="details"></div>`;
-          container.appendChild(table);
-
-          table.addEventListener("click", () => {
-            showModal(tableId);
-          });
-        }
-      });
-      for (const tableId in tables) {
-        updateTableUI(tableId);
-      }
-    }
-
-    function updateTableUI(tableId) {
-      const tableElement = document.getElementById(tableId);
-      const tableData = tables[tableId];
-      if (!tableElement || !tableData) return;
-
-      const details = tableElement.querySelector('.details');
-      tableElement.classList.remove("occupied", "pending");
-
-      if (tableData.status === 'occupied') {
-        tableElement.classList.add("occupied");
-        const elapsedTime = Math.floor((Date.now() - tableData.startTime) / 60000);
-        details.innerHTML = `점유 시간: ${elapsedTime}분<br>총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`;
-      } else if (tableData.status === 'pending') {
-        tableElement.classList.add("pending");
-        details.innerHTML = `입금 대기<br>총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`;
-      } else {
-        details.innerHTML = "빈 테이블";
-      }
-    }
+<script>
+    // ... (기존 코드)
 
     function showModal(tableId) {
       const tableData = tables[tableId];
@@ -134,15 +7,27 @@
       modalOrderList.innerHTML = '';
       
       if (tableData.orders && tableData.orders.length > 0) {
-        tableData.orders.forEach(order => {
+        // 주문 내역을 시간대별로 그룹화하여 표시
+        tableData.orders.forEach((order, index) => {
+          const orderTitle = document.createElement('h4');
+          orderTitle.style.marginTop = '10px';
+          orderTitle.style.marginBottom = '5px';
+          orderTitle.textContent = `주문 #${index + 1} (${order.time})`;
+          modalOrderList.appendChild(orderTitle);
+
+          const orderItemsList = document.createElement('ul');
+          orderItemsList.style.listStyle = 'disc';
+          orderItemsList.style.paddingLeft = '20px';
+
           if (order.items) {
             for (const itemName in order.items) {
               const item = order.items[itemName];
               const li = document.createElement('li');
               li.textContent = `${itemName} x ${item.quantity}`;
-              modalOrderList.appendChild(li);
+              orderItemsList.appendChild(li);
             }
           }
+          modalOrderList.appendChild(orderItemsList);
         });
       } else {
         modalOrderList.innerHTML = '<li>주문 내역 없음</li>';
@@ -162,38 +47,5 @@
       modal.style.display = "flex";
     }
 
-    closeButton.onclick = () => {
-      modal.style.display = "none";
-    };
-
-    window.onclick = (event) => {
-      if (event.target === modal) {
-        modal.style.display = "none";
-      }
-    };
-
-    confirmButton.onclick = () => {
-      const tableId = modalTableId.textContent;
-      ws.send(JSON.stringify({ type: 'confirm-order', tableId: tableId }));
-      modal.style.display = 'none';
-    };
-
-    checkoutButton.onclick = () => {
-      const tableId = modalTableId.textContent;
-      const confirmation = confirm(`${tableId} 테이블을 정산하고 초기화하시겠습니까?`);
-      if (confirmation) {
-        ws.send(JSON.stringify({ type: 'checkout', tableId: tableId }));
-        modal.style.display = 'none';
-      }
-    };
-
-    setInterval(() => {
-      for (const tableId in tables) {
-        if (tables[tableId].status === 'occupied') {
-          updateTableUI(tableId);
-        }
-      }
-    }, 60000); // 1분마다 업데이트
-  </script>
-</body>
-</html>
+    // ... (나머지 코드)
+</script>
