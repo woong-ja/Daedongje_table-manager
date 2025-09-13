@@ -9,7 +9,7 @@ const tables = {};
     for (let i = 1; i <= 6; i++) {
         const tableId = `${section}-${i}`;
         tables[tableId] = {
-            isOccupied: false,
+            status: 'free',
             startTime: null,
             totalPrice: 0,
             orders: []
@@ -42,33 +42,48 @@ wss.on('connection', ws => {
             const data = JSON.parse(message);
             const tableId = data.tableId;
 
+            if (!tables[tableId]) {
+                console.log(`알 수 없는 테이블 ID: ${tableId}`);
+                return;
+            }
+
             if (data.type === 'occupy') {
-                if (tables[tableId]) {
-                    tables[tableId].isOccupied = true;
+                if (tables[tableId].status === 'free') {
+                    tables[tableId].status = 'occupied';
                     tables[tableId].startTime = Date.now();
                     tables[tableId].totalPrice = 0;
                     tables[tableId].orders = [];
                     broadcastUpdate(tableId, tables[tableId]);
                 }
-            } else if (data.type === 'order') {
-                if (tables[tableId]) {
+            } else if (data.type === 'order-pending') {
+                if (tables[tableId].status !== 'pending') {
                     const { items, totalPrice } = data;
+                    tables[tableId].status = 'pending';
+                    tables[tableId].totalPrice += totalPrice;
                     tables[tableId].orders.push({
                         time: new Date().toLocaleTimeString('ko-KR'),
                         items: items,
                         totalPrice: totalPrice
                     });
-                    tables[tableId].totalPrice += totalPrice;
                     broadcastUpdate(tableId, tables[tableId]);
+                }
+            } else if (data.type === 'confirm-order') {
+                if (tables[tableId].status === 'pending') {
+                    tables[tableId].status = 'occupied';
+                    tables[tableId].startTime = Date.now();
+                    broadcastUpdate(tableId, tables[tableId]);
+                    wss.clients.forEach(client => {
+                        if (client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({ type: 'order-confirmed', tableId: tableId }));
+                        }
+                    });
                 }
             } else if (data.type === 'checkout') {
-                if (tables[tableId]) {
-                    tables[tableId].isOccupied = false;
-                    tables[tableId].startTime = null;
-                    tables[tableId].totalPrice = 0;
-                    tables[tableId].orders = [];
-                    broadcastUpdate(tableId, tables[tableId]);
-                }
+                tables[tableId].status = 'free';
+                tables[tableId].startTime = null;
+                tables[tableId].totalPrice = 0;
+                tables[tableId].orders = [];
+                broadcastUpdate(tableId, tables[tableId]);
             }
         } catch (e) {
             console.error('메시지 처리 오류:', e);

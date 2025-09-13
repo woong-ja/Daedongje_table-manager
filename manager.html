@@ -12,9 +12,20 @@
     .tables { display: grid; grid-template-columns: repeat(3, 100px); grid-template-rows: repeat(2, 100px); gap: 10px; }
     .table { display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 5px; background-color: white; color: black; border: 2px solid #f5dd8f; border-radius: 8px; cursor: pointer; font-weight: bold; }
     .table.occupied { background-color: #d64040; color: white; }
+    .table.pending { background-color: #f5dd8f; color: black; }
     .table.occupied .details { color: #f5dd8f; }
     .table-id { font-size: 16px; margin-bottom: 5px; }
     .details { font-size: 12px; text-align: center; }
+    /* Modal styles */
+    .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
+    .modal-content { background-color: #193b59; padding: 20px; border: 2px solid #f5dd8f; width: 80%; max-width: 400px; border-radius: 10px; text-align: left; position: relative; }
+    .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; position: absolute; top: 10px; right: 20px; }
+    .close-button:hover, .close-button:focus { color: white; text-decoration: none; }
+    .order-list li { margin-bottom: 5px; }
+    .modal-buttons { margin-top: 20px; text-align: center; }
+    .modal-buttons button { padding: 10px 20px; margin: 0 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    #confirm-button { background-color: #4CAF50; color: white; }
+    #checkout-button { background-color: #f44336; color: white; }
   </style>
 </head>
 <body>
@@ -38,84 +49,150 @@
     </div>
   </div>
 
+  <div id="myModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button">&times;</span>
+      <h2 id="modal-table-id"></h2>
+      <h3>주문 내역</h3>
+      <ul id="modal-order-list" class="order-list"></ul>
+      <p><strong>총 금액:</strong> <span id="modal-total-price"></span>원</p>
+      <div class="modal-buttons">
+        <button id="confirm-button" style="display:none;">입금 확인</button>
+        <button id="checkout-button" style="display:none;">정산 완료</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const sections = ["A", "B", "C", "D"];
-    const ws = new WebSocket("wss://daedongje-table-manager.onrender.com"); // ⚠️ 당신의 주소로 자동 수정했습니다.
+    const ws = new WebSocket("wss://daedongje-table-manager.onrender.com");
+    const tables = {};
+    const modal = document.getElementById("myModal");
+    const closeButton = document.querySelector(".close-button");
+    const modalTableId = document.getElementById("modal-table-id");
+    const modalOrderList = document.getElementById("modal-order-list");
+    const modalTotalPrice = document.getElementById("modal-total-price");
+    const confirmButton = document.getElementById("confirm-button");
+    const checkoutButton = document.getElementById("checkout-button");
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'init') {
-        for (const tableId in data.tables) {
-          updateTableUI(tableId, data.tables[tableId]);
-        }
-      } else if (data.type === 'table-update' || data.type === 'order-update') {
-        updateTableUI(data.tableId, data.tableData);
+        Object.assign(tables, data.tables);
+        renderTables();
+      } else if (data.type === 'table-update') {
+        tables[data.tableId] = data.tableData;
+        updateTableUI(data.tableId);
       }
     };
 
-    function updateTableUI(tableId, tableData) {
-      let tableElement = document.getElementById(tableId);
-      if (!tableElement) {
-        const [section, number] = tableId.split('-');
+    function renderTables() {
+      sections.forEach(section => {
         const container = document.getElementById(section);
-        if (container) {
-          tableElement = document.createElement("div");
-          tableElement.id = tableId;
-          tableElement.className = "table";
-          tableElement.innerHTML = `<span class="table-id">${tableId}</span><div class="details"></div>`;
-          container.appendChild(tableElement);
-          
-          tableElement.addEventListener("click", () => {
-            if (tableData.isOccupied) {
-              const confirmation = confirm(`${tableId} 테이블을 정산하고 초기화하시겠습니까?\n총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`);
-              if (confirmation) {
-                ws.send(JSON.stringify({ type: 'checkout', tableId: tableId }));
-              }
-            }
+        container.innerHTML = '';
+        for (let i = 1; i <= 6; i++) {
+          const tableId = section + "-" + i;
+          const table = document.createElement("div");
+          table.id = tableId;
+          table.className = "table";
+          table.innerHTML = `<span class="table-id">${tableId}</span><div class="details"></div>`;
+          container.appendChild(table);
+
+          table.addEventListener("click", () => {
+            showModal(tableId);
           });
         }
-      }
-
-      if (tableElement) {
-        const details = tableElement.querySelector('.details');
-        if (tableData.isOccupied) {
-          tableElement.classList.add("occupied");
-          const elapsedTime = Math.floor((Date.now() - tableData.startTime) / 60000);
-          details.innerHTML = `점유 시간: ${elapsedTime}분<br>총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`;
-        } else {
-          tableElement.classList.remove("occupied");
-          details.innerHTML = "빈 테이블";
-        }
+      });
+      for (const tableId in tables) {
+        updateTableUI(tableId);
       }
     }
 
-    // 이 반복문은 초기 테이블 UI를 한 번만 만듭니다.
-    sections.forEach(section => {
-      const container = document.getElementById(section);
-      for (let i = 1; i <= 6; i++) {
-        const tableId = section + "-" + i;
-        const table = document.createElement("div");
-        table.id = tableId;
-        table.className = "table";
-        table.innerHTML = `<span class="table-id">${tableId}</span><div class="details"></div>`;
-        container.appendChild(table);
+    function updateTableUI(tableId) {
+      const tableElement = document.getElementById(tableId);
+      const tableData = tables[tableId];
+      if (!tableElement || !tableData) return;
 
-        table.addEventListener("click", () => {
-          const tableData = {
-              isOccupied: table.classList.contains('occupied'),
-              totalPrice: parseInt(table.querySelector('.details').textContent.match(/총 금액: (\d+)/)?.[1].replace(/,/g, '') || 0),
-              // startTime은 서버에서 관리하므로 클라이언트에서는 알 필요가 없습니다.
-          };
-          
-          if (tableData.isOccupied) {
-            const confirmation = confirm(`${tableId} 테이블을 정산하고 초기화하시겠습니까?\n총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`);
-            if (confirmation) {
-              ws.send(JSON.stringify({ type: 'checkout', tableId: tableId }));
-            }
-          }
-        });
+      const details = tableElement.querySelector('.details');
+      tableElement.classList.remove("occupied", "pending");
+
+      if (tableData.status === 'occupied') {
+        tableElement.classList.add("occupied");
+        const elapsedTime = Math.floor((Date.now() - tableData.startTime) / 60000);
+        details.innerHTML = `점유 시간: ${elapsedTime}분<br>총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`;
+      } else if (tableData.status === 'pending') {
+        tableElement.classList.add("pending");
+        details.innerHTML = `입금 대기<br>총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`;
+      } else {
+        details.innerHTML = "빈 테이블";
       }
-    });
+    }
+
+    function showModal(tableId) {
+      const tableData = tables[tableId];
+      modalTableId.textContent = tableId;
+      modalOrderList.innerHTML = '';
+      
+      if (tableData.orders && tableData.orders.length > 0) {
+        const latestOrder = tableData.orders[tableData.orders.length - 1];
+        if (latestOrder.items) {
+          for (const itemName in latestOrder.items) {
+            const item = latestOrder.items[itemName];
+            const li = document.createElement('li');
+            li.textContent = `${itemName} x ${item.quantity}`;
+            modalOrderList.appendChild(li);
+          }
+        }
+      } else {
+        modalOrderList.innerHTML = '<li>주문 내역 없음</li>';
+      }
+
+      modalTotalPrice.textContent = tableData.totalPrice.toLocaleString('ko-KR');
+
+      confirmButton.style.display = 'none';
+      checkoutButton.style.display = 'none';
+
+      if (tableData.status === 'pending') {
+        confirmButton.style.display = 'block';
+      } else if (tableData.status === 'occupied') {
+        checkoutButton.style.display = 'block';
+      }
+
+      modal.style.display = "flex";
+    }
+
+    closeButton.onclick = () => {
+      modal.style.display = "none";
+    };
+
+    window.onclick = (event) => {
+      if (event.target === modal) {
+        modal.style.display = "none";
+      }
+    };
+
+    confirmButton.onclick = () => {
+      const tableId = modalTableId.textContent;
+      ws.send(JSON.stringify({ type: 'confirm-order', tableId: tableId }));
+      modal.style.display = 'none';
+    };
+
+    checkoutButton.onclick = () => {
+      const tableId = modalTableId.textContent;
+      const confirmation = confirm(`${tableId} 테이블을 정산하고 초기화하시겠습니까?`);
+      if (confirmation) {
+        ws.send(JSON.stringify({ type: 'checkout', tableId: tableId }));
+        modal.style.display = 'none';
+      }
+    };
+
+    setInterval(() => {
+      for (const tableId in tables) {
+        if (tables[tableId].status === 'occupied') {
+          updateTableUI(tableId);
+        }
+      }
+    }, 60000); // 1분마다 업데이트
   </script>
 </body>
 </html>
