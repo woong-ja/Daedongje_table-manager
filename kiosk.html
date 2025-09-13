@@ -111,6 +111,8 @@
 
     let cart = {};
     let totalPrice = 0;
+    // 입금 대기 상태를 추적하는 변수 추가
+    let isPending = false; 
 
     if (tableId) {
       tableTitle.textContent = `${tableId} 테이블`;
@@ -129,8 +131,10 @@
 
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === 'order-confirmed' && data.tableId === tableId) {
+        // isPending 상태일 때만 메시지를 처리하도록 조건 추가
+        if (isPending && data.type === 'order-confirmed' && data.tableId === tableId) {
             // 주문이 최종 확인되면 키오스크를 다시 활성화합니다.
+            isPending = false; // 상태 변수 초기화
             pendingMessage.innerHTML = '<p>주문이 정상적으로 접수되었습니다!</p>';
             setTimeout(() => {
                 pendingMessage.style.display = 'none';
@@ -138,7 +142,7 @@
                 cart = {};
                 totalPrice = 0;
                 updateCartUI();
-                enableKioskUI(); // 키오스크 UI를 다시 활성화합니다.
+                enableKioskUI();
             }, 3000);
         }
     };
@@ -170,6 +174,7 @@
 
     transferDoneButton.addEventListener('click', () => {
         if (totalPrice > 0) {
+            isPending = true; // 이체 완료 후 상태를 '대기 중'으로 변경
             ws.send(JSON.stringify({
                 type: 'order-pending',
                 tableId: tableId,
@@ -178,7 +183,7 @@
             }));
             orderSummary.style.display = 'none';
             pendingMessage.style.display = 'block';
-            disableKioskUI(); // 이체 완료 후 키오스크 UI를 비활성화합니다.
+            disableKioskUI();
         }
     });
     
@@ -245,13 +250,11 @@
         finalTotalPriceSpan.textContent = totalPrice.toLocaleString('ko-KR');
     }
 
-    // 키오스크 UI를 비활성화하는 함수
     function disableKioskUI() {
         menuContainer.classList.add('disabled');
         cartContainer.classList.add('disabled');
     }
 
-    // 키오스크 UI를 활성화하는 함수
     function enableKioskUI() {
         menuContainer.classList.remove('disabled');
         cartContainer.classList.remove('disabled');
