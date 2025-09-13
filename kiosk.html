@@ -8,7 +8,7 @@
     h1, h2 { color: #f5dd8f; }
     .menu-container { display: flex; flex-direction: column; align-items: center; margin: 20px auto; width: 90%; max-width: 600px; }
     .menu-item { background-color: white; color: black; padding: 15px; margin: 10px 0; border-radius: 8px; cursor: pointer; text-align: left; }
-    .menu-item.disabled { opacity: 0.5; pointer-events: none; }
+    .menu-item.sold-out { opacity: 0.5; pointer-events: none; }
     .item-name { font-weight: bold; font-size: 1.2em; }
     .item-price { font-size: 1.1em; color: #555; }
     .cart-container { background-color: #315b85; padding: 20px; margin: 20px auto; width: 90%; max-width: 600px; border-radius: 10px; }
@@ -39,36 +39,7 @@
 <body>
   <h1 id="table-title"></h1>
   <h2>메뉴판</h2>
-  <div class="menu-container">
-    <div class="menu-item" data-item-name="불닭+타코야끼(8알)" data-price="26000">
-      <div class="item-name">불닭+타코야끼(8알)</div>
-      <div class="item-price">26,000원</div>
-    </div>
-    <div class="menu-item" data-item-name="불닭+소시지(3개)" data-price="22000">
-      <div class="item-name">불닭+소시지(3개)</div>
-      <div class="item-price">22,000원</div>
-    </div>
-    <div class="menu-item" data-item-name="타코야끼(8알)+소시지(3개)+나초" data-price="23000">
-      <div class="item-name">타코야끼(8알)+소시지(3개)+나초</div>
-      <div class="item-price">23,000원</div>
-    </div>
-    <div class="menu-item" data-item-name="김계란" data-price="13000">
-      <div class="item-name">김계란</div>
-      <div class="item-price">13,000원</div>
-    </div>
-    <div class="menu-item" data-item-name="버터구이오징어" data-price="11000">
-      <div class="item-name">버터구이오징어</div>
-      <div class="item-price">11,000원</div>
-    </div>
-    <div class="menu-item" data-item-name="황도" data-price="9000">
-      <div class="item-name">황도</div>
-      <div class="item-price">9,000원</div>
-    </div>
-    <div class="menu-item" data-item-name="나초" data-price="8000">
-      <div class="item-name">나초</div>
-      <div class="item-price">8,000원</div>
-    </div>
-  </div>
+  <div id="menu-container"></div>
   
   <div class="cart-container">
     <h3>장바구니</h3>
@@ -95,7 +66,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const tableId = urlParams.get('tableId');
     const tableTitle = document.getElementById('table-title');
-    const menuItems = document.querySelectorAll('.menu-item');
+    const menuContainer = document.getElementById('menu-container');
     const cartContainer = document.querySelector('.cart-container');
     const cartList = document.getElementById('cart-list');
     const totalPriceSpan = document.getElementById('total-price');
@@ -107,7 +78,6 @@
     const pendingMessage = document.getElementById('pending-message');
     const copyButton = document.getElementById('copy-button');
     const accountNumberSpan = document.getElementById('account-number');
-    const menuContainer = document.querySelector('.menu-container');
 
     let cart = {};
     let totalPrice = 0;
@@ -130,30 +100,47 @@
 
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (isPending && data.type === 'order-confirmed' && data.tableId === tableId) {
+        if (data.type === 'init' || data.type === 'menu-update') {
+            renderMenu(data.menu);
+        } else if (isPending && data.type === 'order-confirmed' && data.tableId === tableId) {
             isPending = false;
             pendingMessage.innerHTML = '<p>주문이 정상적으로 접수되었습니다!</p>';
             setTimeout(() => {
-                // 페이지를 새로고침하여 상태를 초기화합니다.
                 window.location.reload();
             }, 3000);
         }
     };
 
-    menuItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const itemName = item.dataset.itemName;
-            const itemPrice = parseInt(item.dataset.price);
-
-            if (cart[itemName]) {
-                cart[itemName].quantity++;
-            } else {
-                cart[itemName] = { quantity: 1, price: itemPrice };
+    function renderMenu(menuItems) {
+        menuContainer.innerHTML = '';
+        menuItems.forEach(item => {
+            const menuItemDiv = document.createElement('div');
+            menuItemDiv.className = 'menu-item';
+            if (item.isSoldOut) {
+                menuItemDiv.classList.add('sold-out');
             }
-            totalPrice += itemPrice;
-            updateCartUI();
+            menuItemDiv.dataset.itemName = item.name;
+            menuItemDiv.dataset.price = item.price;
+            menuItemDiv.innerHTML = `
+                <div class="item-name">${item.name}</div>
+                <div class="item-price">${item.price.toLocaleString('ko-KR')}원</div>
+            `;
+            menuItemDiv.addEventListener('click', () => {
+                if (!item.isSoldOut) {
+                    const itemName = item.name;
+                    const itemPrice = item.price;
+                    if (cart[itemName]) {
+                        cart[itemName].quantity++;
+                    } else {
+                        cart[itemName] = { quantity: 1, price: itemPrice };
+                    }
+                    totalPrice += itemPrice;
+                    updateCartUI();
+                }
+            });
+            menuContainer.appendChild(menuItemDiv);
         });
-    });
+    }
 
     orderButton.addEventListener('click', () => {
         if (totalPrice > 0) {

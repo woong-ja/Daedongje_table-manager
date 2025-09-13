@@ -4,18 +4,37 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const tables = {};
-['A', 'B', 'C', 'D'].forEach(section => {
-    for (let i = 1; i <= 6; i++) {
-        const tableId = `${section}-${i}`;
-        tables[tableId] = {
-            status: 'free',
-            startTime: null,
-            totalPrice: 0,
-            orders: []
-        };
-    }
+let tables = {};
+const tableIds = ['A-1', 'A-2', 'A-3', 'A-4', 'A-5', 'A-6', 'B-1', 'B-2', 'B-3', 'B-4', 'B-5', 'B-6', 'C-1', 'C-2', 'C-3', 'C-4', 'C-5', 'C-6', 'D-1', 'D-2', 'D-3', 'D-4', 'D-5', 'D-6'];
+tableIds.forEach(tableId => {
+    tables[tableId] = {
+        status: 'free',
+        startTime: null,
+        totalPrice: 0,
+        orders: []
+    };
 });
+
+let menu = [];
+const menuFilePath = path.join(__dirname, 'menu.json');
+
+function loadMenu() {
+    try {
+        const data = fs.readFileSync(menuFilePath, 'utf8');
+        menu = JSON.parse(data);
+    } catch (e) {
+        console.error('메뉴 파일을 읽을 수 없습니다:', e);
+        menu = [];
+    }
+}
+
+function saveMenu() {
+    fs.writeFile(menuFilePath, JSON.stringify(menu, null, 2), 'utf8', (err) => {
+        if (err) console.error('메뉴 파일 저장 오류:', err);
+    });
+}
+
+loadMenu();
 
 const server = http.createServer((req, res) => {
     const url = req.url.split('?')[0];
@@ -25,6 +44,9 @@ const server = http.createServer((req, res) => {
     } else if (url === '/kiosk') {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         fs.createReadStream(path.join(__dirname, 'kiosk.html')).pipe(res);
+    } else if (url === '/api/menu') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(menu));
     } else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('404 Not Found');
@@ -35,14 +57,14 @@ const wss = new WebSocket.Server({ server });
 
 wss.on('connection', ws => {
     console.log('클라이언트가 연결되었습니다.');
-    ws.send(JSON.stringify({ type: 'init', tables: tables }));
+    ws.send(JSON.stringify({ type: 'init', tables: tables, menu: menu }));
 
     ws.on('message', message => {
         try {
             const data = JSON.parse(message);
             const tableId = data.tableId;
 
-            if (!tables[tableId]) {
+            if (tableId && !tables[tableId]) {
                 console.log(`알 수 없는 테이블 ID: ${tableId}`);
                 return;
             }
@@ -68,8 +90,6 @@ wss.on('connection', ws => {
             } else if (data.type === 'confirm-order') {
                 if (tables[tableId].status === 'pending') {
                     tables[tableId].status = 'occupied';
-                    // 점유 시간 초기화 코드를 제거합니다.
-                    // tables[tableId].startTime = Date.now(); 
                     broadcastUpdate(tableId, tables[tableId]);
                     wss.clients.forEach(client => {
                         if (client.readyState === WebSocket.OPEN) {
@@ -83,7 +103,12 @@ wss.on('connection', ws => {
                 tables[tableId].totalPrice = 0;
                 tables[tableId].orders = [];
                 broadcastUpdate(tableId, tables[tableId]);
+            } else if (data.type === 'update-menu') {
+                menu = data.menu;
+                saveMenu();
+                broadcastMenuUpdate();
             }
+
         } catch (e) {
             console.error('메시지 처리 오류:', e);
         }
@@ -98,6 +123,14 @@ function broadcastUpdate(tableId, tableData) {
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({ type: 'table-update', tableId: tableId, tableData: tableData }));
+        }
+    });
+}
+
+function broadcastMenuUpdate() {
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: 'menu-update', menu: menu }));
         }
     });
 }
