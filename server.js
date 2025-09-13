@@ -60,7 +60,7 @@ wss.on('connection', ws => {
                 tables[tableId].status = 'pending';
                 tables[tableId].totalPrice += totalPrice;
                 tables[tableId].orders.push({
-                    time: new Date().toLocaleTimeString('ko-KR'),
+                    time: new Date().toISOString(),
                     items: items,
                     totalPrice: totalPrice
                 });
