@@ -113,6 +113,9 @@
     const menuListManage = document.getElementById('menu-list-manage');
     const totalRevenue = document.getElementById('total-revenue');
     const topSellingItems = document.getElementById('top-selling-items');
+    
+    // 알림음
+    const newOrderSound = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -123,9 +126,10 @@
         renderMenuManage();
         fetchStatistics();
       } else if (data.type === 'table-update') {
+        const oldStatus = tables[data.tableId].status;
         tables[data.tableId] = data.tableData;
         updateTableUI(data.tableId);
-        if (tables[data.tableId].status === 'pending') {
+        if (oldStatus !== 'pending' && tables[data.tableId].status === 'pending') {
           playNewOrderSound();
         }
       } else if (data.type === 'menu-update') {
@@ -133,6 +137,10 @@
         renderMenuManage();
       }
     };
+    
+    function playNewOrderSound() {
+        newOrderSound.play().catch(e => console.error("오디오 재생 오류:", e));
+    }
 
     function renderTables() {
       sections.forEach(section => {
@@ -166,10 +174,12 @@
 
       if (tableData.status === 'occupied') {
         tableElement.classList.add("occupied");
+        
         let elapsedTime = '---';
         if (tableData.startTime) {
             elapsedTime = Math.floor((Date.now() - tableData.startTime) / 60000);
         }
+
         details.innerHTML = `점유 시간: ${elapsedTime}분<br>총 금액: ${tableData.totalPrice.toLocaleString('ko-KR')}원`;
       } else if (tableData.status === 'pending') {
         tableElement.classList.add("pending");
@@ -309,27 +319,35 @@
 
     // Statistics
     function fetchStatistics() {
-        // 임시 통계 데이터 (실제로는 서버에서 데이터를 받아와야 합니다)
-        const totalSales = Object.values(tables).reduce((sum, table) => sum + table.totalPrice, 0);
-        totalRevenue.textContent = totalSales.toLocaleString('ko-KR');
+        fetch('/api/sales')
+            .then(response => response.json())
+            .then(salesData => {
+                const totalSales = salesData.reduce((sum, sale) => sum + sale.totalPrice, 0);
+                totalRevenue.textContent = totalSales.toLocaleString('ko-KR');
 
-        const itemCounts = {};
-        Object.values(tables).forEach(table => {
-            table.orders.forEach(order => {
-                for (const itemName in order.items) {
-                    itemCounts[itemName] = (itemCounts[itemName] || 0) + order.items[itemName].quantity;
+                const itemCounts = {};
+                salesData.forEach(sale => {
+                    sale.orders.forEach(order => {
+                        for (const itemName in order.items) {
+                            itemCounts[itemName] = (itemCounts[itemName] || 0) + order.items[itemName].quantity;
+                        }
+                    });
+                });
+
+                const sortedItems = Object.entries(itemCounts).sort(([, countA], [, countB]) => countB - countA);
+                topSellingItems.innerHTML = '';
+                if (sortedItems.length > 0) {
+                    sortedItems.slice(0, 5).forEach(([name, count]) => {
+                        const div = document.createElement('div');
+                        div.className = 'stats-item';
+                        div.textContent = `${name}: ${count}개`;
+                        topSellingItems.appendChild(div);
+                    });
+                } else {
+                    topSellingItems.innerHTML = `<div class="stats-item">판매 기록이 없습니다.</div>`;
                 }
-            });
-        });
-
-        const sortedItems = Object.entries(itemCounts).sort(([, countA], [, countB]) => countB - countA);
-        topSellingItems.innerHTML = '';
-        sortedItems.slice(0, 5).forEach(([name, count]) => {
-            const div = document.createElement('div');
-            div.className = 'stats-item';
-            div.textContent = `${name}: ${count}개`;
-            topSellingItems.appendChild(div);
-        });
+            })
+            .catch(e => console.error('통계 데이터 불러오기 오류:', e));
     }
   </script>
 </body>
