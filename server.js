@@ -17,6 +17,8 @@ tableIds.forEach(tableId => {
 
 let menu = [];
 const menuFilePath = path.join(__dirname, 'menu.json');
+let salesData = [];
+const salesFilePath = path.join(__dirname, 'sales.json');
 
 function loadMenu() {
     try {
@@ -34,7 +36,24 @@ function saveMenu() {
     });
 }
 
+function loadSales() {
+    try {
+        const data = fs.readFileSync(salesFilePath, 'utf8');
+        salesData = JSON.parse(data);
+    } catch (e) {
+        console.error('판매 기록 파일을 읽을 수 없습니다:', e);
+        salesData = [];
+    }
+}
+
+function saveSales() {
+    fs.writeFile(salesFilePath, JSON.stringify(salesData, null, 2), 'utf8', (err) => {
+        if (err) console.error('판매 기록 파일 저장 오류:', err);
+    });
+}
+
 loadMenu();
+loadSales();
 
 const server = http.createServer((req, res) => {
     const url = req.url.split('?')[0];
@@ -47,6 +66,9 @@ const server = http.createServer((req, res) => {
     } else if (url === '/api/menu') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(menu));
+    } else if (url === '/api/sales') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(salesData));
     } else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('404 Not Found');
@@ -98,6 +120,16 @@ wss.on('connection', ws => {
                     });
                 }
             } else if (data.type === 'checkout') {
+                // 정산 완료 시 판매 기록을 salesData에 추가
+                salesData.push({
+                    tableId: tableId,
+                    checkoutTime: new Date().toISOString(),
+                    totalPrice: tables[tableId].totalPrice,
+                    orders: tables[tableId].orders
+                });
+                saveSales();
+
+                // 테이블 상태 초기화
                 tables[tableId].status = 'free';
                 tables[tableId].startTime = null;
                 tables[tableId].totalPrice = 0;
