@@ -36,6 +36,7 @@
     .sold-out-toggle { background-color: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
     .sold-out-toggle.available { background-color: #4CAF50; }
     .stats-item { padding: 10px; border-bottom: 1px solid #5d8ab5; }
+    .reset-button { margin-top: 20px; padding: 10px 20px; border: none; border-radius: 5px; background-color: #f44336; color: white; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -76,6 +77,7 @@
     <p>총 매출: <strong id="total-revenue">0</strong>원</p>
     <h3>가장 많이 팔린 메뉴</h3>
     <div id="top-selling-items"></div>
+    <button id="reset-stats-button" class="reset-button">통계 초기화</button>
   </div>
 
 
@@ -113,9 +115,11 @@
     const menuListManage = document.getElementById('menu-list-manage');
     const totalRevenue = document.getElementById('total-revenue');
     const topSellingItems = document.getElementById('top-selling-items');
+    const resetStatsButton = document.getElementById('reset-stats-button');
     
-    // 소리 알림 기능 관련 코드를 제거합니다.
-    
+    // 알림음
+    const newOrderSound = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'init') {
@@ -128,15 +132,19 @@
         const oldStatus = tables[data.tableId].status;
         tables[data.tableId] = data.tableData;
         updateTableUI(data.tableId);
-        // 소리 재생 코드를 제거합니다.
+        if (oldStatus !== 'pending' && tables[data.tableId].status === 'pending') {
+          playNewOrderSound();
+        }
       } else if (data.type === 'menu-update') {
         menu = data.menu;
         renderMenuManage();
+      } else if (data.type === 'sales-update') {
+        fetchStatistics();
       }
     };
     
     function playNewOrderSound() {
-        // 이 함수는 더 이상 사용되지 않습니다.
+        newOrderSound.play().catch(e => console.error("오디오 재생 오류:", e));
     }
 
     function renderTables() {
@@ -294,7 +302,7 @@
             }
         });
     });
-
+    
     // Menu Management
     function renderMenuManage() {
         menuListManage.innerHTML = '';
@@ -346,6 +354,13 @@
             })
             .catch(e => console.error('통계 데이터 불러오기 오류:', e));
     }
+    
+    resetStatsButton.addEventListener('click', () => {
+        const confirmation = confirm("정말로 모든 판매 통계를 초기화하시겠습니까?");
+        if (confirmation) {
+            ws.send(JSON.stringify({ type: 'reset-sales' }));
+        }
+    });
   </script>
 </body>
 </html>
