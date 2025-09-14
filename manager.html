@@ -114,9 +114,8 @@
     const totalRevenue = document.getElementById('total-revenue');
     const topSellingItems = document.getElementById('top-selling-items');
     
-    // 알림음
-    const newOrderSound = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
-
+    // 소리 알림 기능 관련 코드를 제거합니다.
+    
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'init') {
@@ -129,9 +128,7 @@
         const oldStatus = tables[data.tableId].status;
         tables[data.tableId] = data.tableData;
         updateTableUI(data.tableId);
-        if (oldStatus !== 'pending' && tables[data.tableId].status === 'pending') {
-          playNewOrderSound();
-        }
+        // 소리 재생 코드를 제거합니다.
       } else if (data.type === 'menu-update') {
         menu = data.menu;
         renderMenuManage();
@@ -139,7 +136,7 @@
     };
     
     function playNewOrderSound() {
-        newOrderSound.play().catch(e => console.error("오디오 재생 오류:", e));
+        // 이 함수는 더 이상 사용되지 않습니다.
     }
 
     function renderTables() {
