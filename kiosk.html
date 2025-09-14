@@ -75,7 +75,7 @@
     }
     .item-info {
       padding: 10px;
-      text-align: center;
+      text-align: left;
     }
     .item-name { font-weight: bold; }
     .item-price { font-size: 0.9em; color: #ccc; }
@@ -119,6 +119,9 @@
       align-items: center;
       padding: 10px 0;
       border-bottom: 1px solid #333;
+    }
+    .cart-item .item-info {
+      text-align: left;
     }
     .quantity-controls {
       display: flex;
@@ -176,6 +179,8 @@
         padding: 30px;
         color: #333;
         border-radius: 15px;
+        width: 80%;
+        max-width: 400px;
     }
     #payment-modal .payment-section {
         background-color: white;
@@ -464,7 +469,7 @@
             const cartItemDiv = document.createElement('div');
             cartItemDiv.className = 'cart-item';
             cartItemDiv.innerHTML = `
-                <div>
+                <div class="item-info">
                     <div class="item-name">${itemName}</div>
                     <div class="item-price">${(cart[itemName].quantity * itemData.price).toLocaleString('ko-KR')}원</div>
                 </div>
