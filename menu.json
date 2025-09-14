@@ -1,9 +1,9 @@
 [
-    { "name": "불닭+타코야끼(8알)", "price": 26000, "isSoldOut": false, "category": "메인 메뉴", "image": "images/buldak_takoyaki.jpeg" },
-    { "name": "불닭+소시지(3개)", "price": 22000, "isSoldOut": false, "category": "메인 메뉴", "image": "images/buldak_sausage.jpeg" },
-    { "name": "타코야끼(8알)+소시지(3개)+나초", "price": 23000, "isSoldOut": false, "category": "메인 메뉴", "image": "images/takoyaki_nacho.jpeg" },
-    { "name": "김계란", "price": 13000, "isSoldOut": false, "category": "사이드 메뉴", "image": "images/egg.jpeg" },
-    { "name": "버터구이오징어", "price": 11000, "isSoldOut": false, "category": "사이드 메뉴", "image": "images/butter_squid.jpeg" },
-    { "name": "황도", "price": 9000, "isSoldOut": false, "category": "사이드 메뉴", "image": "images/hwangdo.jpeg" },
-    { "name": "나초", "price": 8000, "isSoldOut": false, "category": "사이드 메뉴", "image": "images/nacho.jpeg" }
+    { "name": "불닭+타코야끼(8알)", "price": 26000, "isSoldOut": false, "category": "메인 메뉴", "image": "buldak_takoyaki.jpeg" },
+    { "name": "불닭+소시지(3개)", "price": 22000, "isSoldOut": false, "category": "메인 메뉴", "image": "buldak_sausage.jpeg" },
+    { "name": "타코야끼(8알)+소시지(3개)+나초", "price": 23000, "isSoldOut": false, "category": "메인 메뉴", "image": "takoyaki_nacho.jpeg" },
+    { "name": "김계란", "price": 13000, "isSoldOut": false, "category": "사이드 메뉴", "image": "egg.jpeg" },
+    { "name": "버터구이오징어", "price": 11000, "isSoldOut": false, "category": "사이드 메뉴", "image": "butter_squid.jpeg" },
+    { "name": "황도", "price": 9000, "isSoldOut": false, "category": "사이드 메뉴", "image": "hwangdo.jpeg" },
+    { "name": "나초", "price": 8000, "isSoldOut": false, "category": "사이드 메뉴", "image": "nacho.jpeg" }
 ]

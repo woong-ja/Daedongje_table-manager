@@ -69,6 +69,17 @@ const server = http.createServer((req, res) => {
     } else if (url === '/api/sales') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(salesData));
+    } else if (url.startsWith('/images/')) {
+        const imagePath = path.join(__dirname, 'images', path.basename(url));
+        fs.readFile(imagePath, (err, data) => {
+            if (err) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Image not found');
+                return;
+            }
+            res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+            res.end(data);
+        });
     } else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('404 Not Found');
@@ -120,7 +131,6 @@ wss.on('connection', ws => {
                     });
                 }
             } else if (data.type === 'checkout') {
-                // 정산 완료 시 판매 기록을 salesData에 추가
                 salesData.push({
                     tableId: tableId,
                     checkoutTime: new Date().toISOString(),
@@ -129,7 +139,6 @@ wss.on('connection', ws => {
                 });
                 saveSales();
 
-                // 테이블 상태 초기화
                 tables[tableId].status = 'free';
                 tables[tableId].startTime = null;
                 tables[tableId].totalPrice = 0;
