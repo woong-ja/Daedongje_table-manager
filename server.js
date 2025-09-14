@@ -148,6 +148,10 @@ wss.on('connection', ws => {
                 menu = data.menu;
                 saveMenu();
                 broadcastMenuUpdate();
+            } else if (data.type === 'reset-sales') {
+                salesData = [];
+                saveSales();
+                broadcastSalesUpdate();
             }
 
         } catch (e) {
@@ -172,6 +176,14 @@ function broadcastMenuUpdate() {
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({ type: 'menu-update', menu: menu }));
+        }
+    });
+}
+
+function broadcastSalesUpdate() {
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: 'sales-update', salesData: salesData }));
         }
     });
 }
