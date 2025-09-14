@@ -69,8 +69,8 @@ const server = http.createServer((req, res) => {
     } else if (url === '/api/sales') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(salesData));
-    } else if (url.startsWith('/images/')) {
-        const imagePath = path.join(__dirname, 'images', path.basename(url));
+    } else if (url.endsWith('.jpeg') || url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.gif')) {
+        const imagePath = path.join(__dirname, url);
         fs.readFile(imagePath, (err, data) => {
             if (err) {
                 res.writeHead(404, { 'Content-Type': 'text/plain' });
