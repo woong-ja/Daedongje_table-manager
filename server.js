@@ -103,6 +103,7 @@ wss.on('connection', ws => {
             }
 
             if (data.type === 'occupy') {
+                ws.tableId = tableId;
                 if (tables[tableId].status === 'free') {
                     tables[tableId].status = 'occupied';
                     tables[tableId].startTime = Date.now();
@@ -155,6 +156,13 @@ wss.on('connection', ws => {
                     // 테이블 상태를 '사용 중'으로 되돌림
                     tables[tableId].status = 'occupied';
                     broadcastUpdate(tableId, tables[tableId]);
+                    // 특정 테이블 키오스크에만 주문 취소 신호를 보냄
+                    wss.clients.forEach(client => {
+                        if (client.tableId === tableId && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({ type: 'order-cancelled' }));
+                        }
+                    });
+
                 }
             } else if (data.type === 'update-menu') {
                 menu = data.menu;
