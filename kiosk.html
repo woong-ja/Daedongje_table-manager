@@ -477,6 +477,11 @@
             setTimeout(() => {
                 window.location.reload();
             }, 100);
+        } else if (data.type === 'order-cancelled') {
+            isPending = false;
+            pendingModal.style.display = 'none'; // 혹시 '입금 확인 중' 창이 떠있으면 닫기
+            alert('관리자에 의해 주문이 취소되었습니다. 메뉴를 다시 선택해주세요.');
+            window.location.reload();
         }
     };
 
