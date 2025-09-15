@@ -144,6 +144,18 @@ wss.on('connection', ws => {
                 tables[tableId].totalPrice = 0;
                 tables[tableId].orders = [];
                 broadcastUpdate(tableId, tables[tableId]);
+            } else if (data.type === 'cancel-order') {
+                if (tables[tableId] && tables[tableId].status === 'pending') {
+                    // 마지막 주문을 배열에서 제거
+                    const canceledOrder = tables[tableId].orders.pop();
+                    if (canceledOrder) {
+                        // 총 금액에서 취소된 주문의 금액을 뺌
+                        tables[tableId].totalPrice -= canceledOrder.totalPrice;
+                    }
+                    // 테이블 상태를 '사용 중'으로 되돌림
+                    tables[tableId].status = 'occupied';
+                    broadcastUpdate(tableId, tables[tableId]);
+                }
             } else if (data.type === 'update-menu') {
                 menu = data.menu;
                 saveMenu();
