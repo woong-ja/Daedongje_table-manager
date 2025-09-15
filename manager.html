@@ -192,7 +192,7 @@
           const orderTitle = document.createElement('h4');
           orderTitle.style.cssText = 'margin-top: 10px; margin-bottom: 5px;';
           const orderDate = new Date(order.time);
-          const formattedTime = orderDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+          const formattedTime = orderDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit',second: '2-digit', hour12: false });
           orderTitle.textContent = `주문 #${index + 1} (${formattedTime})`;
           modalOrderList.appendChild(orderTitle);
 
