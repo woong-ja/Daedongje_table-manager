@@ -69,6 +69,17 @@ const server = http.createServer((req, res) => {
     } else if (url === '/api/sales') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(salesData));
+    } else if (url.endsWith('.jpeg') || url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.gif')) {
+        const imagePath = path.join(__dirname, url);
+        fs.readFile(imagePath, (err, data) => {
+            if (err) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Image not found');
+                return;
+            }
+            res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+            res.end(data);
+        });
     } else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('404 Not Found');
@@ -82,7 +93,7 @@ wss.on('connection', ws => {
     ws.send(JSON.stringify({ type: 'init', tables: tables, menu: menu }));
 
     ws.on('message', message => {
-        try { // <-- 모든 로직은 이 try 블록 안에서 처리되어야 합니다.
+        try {
             const data = JSON.parse(message);
             const tableId = data.tableId;
 
@@ -127,27 +138,19 @@ wss.on('connection', ws => {
                     orders: tables[tableId].orders
                 });
                 saveSales();
+
                 tables[tableId].status = 'free';
                 tables[tableId].startTime = null;
                 tables[tableId].totalPrice = 0;
                 tables[tableId].orders = [];
                 broadcastUpdate(tableId, tables[tableId]);
-            } else if (data.type === 'cancel-order') { // <-- '주문 취소' 로직이 올바른 위치에 있습니다.
-                if (tables[tableId] && tables[tableId].status === 'pending') {
-                    const canceledOrder = tables[tableId].orders.pop();
-                    if (canceledOrder) {
-                        tables[tableId].totalPrice -= canceledOrder.totalPrice;
-                    }
-                    tables[tableId].status = 'occupied';
-                    broadcastUpdate(tableId, tables[tableId]);
-                }
             } else if (data.type === 'update-menu') {
                 menu = data.menu;
                 saveMenu();
                 broadcastMenuUpdate();
             }
 
-        } catch (e) { // <-- try 블록에 대한 catch가 올바르게 연결됩니다.
+        } catch (e) {
             console.error('메시지 처리 오류:', e);
         }
     });
