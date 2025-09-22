@@ -39,6 +39,34 @@
   </style>
 </head>
 <body>
+  <script>
+    // 페이지가 로드되기 전에 즉시 실행되는 로그인 스크립트
+    (function() {
+      const managerId = "안현정"; // 관리자 ID
+      const managerPw = "모쏠탈출";  // 관리자 비밀번호
+
+      const enteredId = prompt("관리자 아이디를 입력하세요:");
+      // 사용자가 '취소'를 누른 경우 (null) 또는 아무것도 입력하지 않은 경우
+      if (enteredId === null || enteredId === "") {
+        document.body.innerHTML = '<h1 style="color: white; text-align: center; padding-top: 50px;">로그인이 취소되었습니다.</h1>';
+        throw new Error("Login canceled by user."); // 페이지 로딩 중단
+      }
+
+      const enteredPw = prompt("관리자 비밀번호를 입력하세요:");
+      if (enteredPw === null) {
+         document.body.innerHTML = '<h1 style="color: white; text-align: center; padding-top: 50px;">로그인이 취소되었습니다.</h1>';
+        throw new Error("Login canceled by user."); // 페이지 로딩 중단
+      }
+
+      if (enteredId !== managerId || enteredPw !== managerPw) {
+        alert("아이디 또는 비밀번호가 일치하지 않습니다!");
+        document.body.innerHTML = '<h1 style="color: white; text-align: center; padding-top: 50px;">접근 권한이 없습니다.</h1>';
+        throw new Error("Login failed."); // 페이지의 나머지 부분 실행을 중단
+      }
+      // 인증 성공 시, 아무것도 하지 않고 스크립트가 종료되어 나머지 페이지가 정상적으로 로드됨
+    })();
+  </script>
+
   <h1>통합 테이블 관리 대시보드</h1>
   
   <div class="management-tabs">
