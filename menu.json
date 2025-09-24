@@ -1,10 +1,10 @@
 [
     { "name": "5,000원 할인쿠폰", "price": -5000, "isSoldOut": false, "category": "할인권", "image": "discount.png", "type": "discount" },
-    { "name": "공사판에서 3초안에 주운 타코야끼", "price": 17000, "isSoldOut": false, "category": "메인 메뉴", "image": "buldak_takoyaki.jpeg", "type": "food" },
-    { "name": "공구리불닭", "price": 16000, "isSoldOut": false, "category": "메인 메뉴", "image": "buldak_sausage.jpeg", "type": "food" },
-    { "name": "맵찔이세트", "price": 18000, "isSoldOut": false, "category": "메인 메뉴", "image": "takoyaki_nacho.jpeg", "type": "food" },
-    { "name": "김계란", "price": 10000, "isSoldOut": false, "category": "사이드 메뉴", "image": "egg.jpeg", "type": "food" },
-    { "name": "거울보셈", "price": 8000, "isSoldOut": false, "category": "사이드 메뉴", "image": "butter_squid.jpeg", "type": "food" },
-    { "name": "술집에서 '만오천원'에 파는 황도", "price": 6000, "isSoldOut": false, "category": "사이드 메뉴", "image": "hwangdo.jpeg", "type": "food" },
+    { "name": "공사판에서 3초안에 주운 타코야끼", "price": 17000, "isSoldOut": false, "category": "메인 메뉴", "image": "buldak_takoyaki.png", "type": "food" },
+    { "name": "공구리불닭", "price": 16000, "isSoldOut": false, "category": "메인 메뉴", "image": "buldak_sausage.png", "type": "food" },
+    { "name": "맵찔이세트", "price": 18000, "isSoldOut": false, "category": "메인 메뉴", "image": "takoyaki_nacho.png", "type": "food" },
+    { "name": "김계란", "price": 10000, "isSoldOut": false, "category": "사이드 메뉴", "image": "egg.png", "type": "food" },
+    { "name": "거울보셈", "price": 8000, "isSoldOut": false, "category": "사이드 메뉴", "image": "butter_squid.png", "type": "food" },
+    { "name": "술집에서 '만오천원'에 파는 황도", "price": 6000, "isSoldOut": false, "category": "사이드 메뉴", "image": "hwangdo.png", "type": "food" },
     { "name": "나초", "price": 5000, "isSoldOut": false, "category": "사이드 메뉴", "image": "nacho.jpeg", "type": "food" }
 ]
